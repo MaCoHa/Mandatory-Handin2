@@ -1,0 +1,29 @@
+// protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative netprotocols/netprotocols.proto
+syntax = "proto3";
+
+option go_package = "../netprotocols";
+
+
+package netprotocols;
+
+service Dicegameprotocols {
+  rpc SendCommitment (HashMessage) returns (Reply) {}
+  rpc SendMessage (ControlMessage) returns (Void) {}
+}
+
+
+message HashMessage {
+  string commitment = 1;
+}
+
+
+message Reply {
+  string message = 1;
+}
+
+message ControlMessage {
+  string message = 1;
+  string random =2;
+}
+
+message Void {}
