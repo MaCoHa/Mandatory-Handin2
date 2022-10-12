@@ -2,7 +2,7 @@
 syntax = "proto3";
 
 option go_package = "../netprotocols";
-import "google/protobuf/any.proto";
+
 
 package netprotocols;
 
@@ -13,7 +13,7 @@ service Dicegameprotocols {
 }
 
 message PublicKey {
-  google.protobuf.Any PublicKey = 1;
+  bytes PublicSignKey = 1;
 }
 
 message HashMessage {
