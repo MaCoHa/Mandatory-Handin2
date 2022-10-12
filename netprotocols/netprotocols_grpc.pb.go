@@ -23,7 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DicegameprotocolsClient interface {
 	SharePublicKey(ctx context.Context, in *PublicKey, opts ...grpc.CallOption) (*PublicKey, error)
-	SendCommitment(ctx context.Context, in *HashMessage, opts ...grpc.CallOption) (*Reply, error)
+	SendCommitment(ctx context.Context, in *CommitmentMessage, opts ...grpc.CallOption) (*Reply, error)
 	SendMessage(ctx context.Context, in *ControlMessage, opts ...grpc.CallOption) (*Void, error)
 }
 
@@ -44,7 +44,7 @@ func (c *dicegameprotocolsClient) SharePublicKey(ctx context.Context, in *Public
 	return out, nil
 }
 
-func (c *dicegameprotocolsClient) SendCommitment(ctx context.Context, in *HashMessage, opts ...grpc.CallOption) (*Reply, error) {
+func (c *dicegameprotocolsClient) SendCommitment(ctx context.Context, in *CommitmentMessage, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
 	err := c.cc.Invoke(ctx, "/netprotocols.Dicegameprotocols/SendCommitment", in, out, opts...)
 	if err != nil {
@@ -67,7 +67,7 @@ func (c *dicegameprotocolsClient) SendMessage(ctx context.Context, in *ControlMe
 // for forward compatibility
 type DicegameprotocolsServer interface {
 	SharePublicKey(context.Context, *PublicKey) (*PublicKey, error)
-	SendCommitment(context.Context, *HashMessage) (*Reply, error)
+	SendCommitment(context.Context, *CommitmentMessage) (*Reply, error)
 	SendMessage(context.Context, *ControlMessage) (*Void, error)
 	mustEmbedUnimplementedDicegameprotocolsServer()
 }
@@ -79,7 +79,7 @@ type UnimplementedDicegameprotocolsServer struct {
 func (UnimplementedDicegameprotocolsServer) SharePublicKey(context.Context, *PublicKey) (*PublicKey, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SharePublicKey not implemented")
 }
-func (UnimplementedDicegameprotocolsServer) SendCommitment(context.Context, *HashMessage) (*Reply, error) {
+func (UnimplementedDicegameprotocolsServer) SendCommitment(context.Context, *CommitmentMessage) (*Reply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendCommitment not implemented")
 }
 func (UnimplementedDicegameprotocolsServer) SendMessage(context.Context, *ControlMessage) (*Void, error) {
@@ -117,7 +117,7 @@ func _Dicegameprotocols_SharePublicKey_Handler(srv interface{}, ctx context.Cont
 }
 
 func _Dicegameprotocols_SendCommitment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(HashMessage)
+	in := new(CommitmentMessage)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -129,7 +129,7 @@ func _Dicegameprotocols_SendCommitment_Handler(srv interface{}, ctx context.Cont
 		FullMethod: "/netprotocols.Dicegameprotocols/SendCommitment",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DicegameprotocolsServer).SendCommitment(ctx, req.(*HashMessage))
+		return srv.(DicegameprotocolsServer).SendCommitment(ctx, req.(*CommitmentMessage))
 	}
 	return interceptor(ctx, in, info, handler)
 }
