@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func getRandom() string {
+func GetRandom() string {
 
 	rand.Seed(time.Now().UnixNano())
 
@@ -24,7 +24,7 @@ func getRandom() string {
 
 }
 
-func getHash(msg, ran string) string {
+func GetHash(msg, ran string) string {
 
 	h := sha256.New()
 	io.WriteString(h, msg+ran)
