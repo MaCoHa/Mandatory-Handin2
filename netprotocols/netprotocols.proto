@@ -2,15 +2,19 @@
 syntax = "proto3";
 
 option go_package = "../netprotocols";
-
+import "google/protobuf/any.proto";
 
 package netprotocols;
 
 service Dicegameprotocols {
+  rpc SharePublicKey (PublicKey) returns (PublicKey) {}
   rpc SendCommitment (HashMessage) returns (Reply) {}
   rpc SendMessage (ControlMessage) returns (Void) {}
 }
 
+message PublicKey {
+  google.protobuf.Any PublicKey = 1;
+}
 
 message HashMessage {
   string commitment = 1;
