@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	port = ":6060"
+	port = "localhost:8085"
 )
 
 type Commitment struct {
