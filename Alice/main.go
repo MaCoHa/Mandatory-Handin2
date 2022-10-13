@@ -1,6 +1,7 @@
 package main
 
 import (
+	enc "Mandatory-Handin2/encryption"
 	pb "Mandatory-Handin2/netprotocols"
 	"context"
 	"crypto/ecdsa"
@@ -17,17 +18,22 @@ var client pb.DicegameprotocolsClient
 var ctx context.Context
 var user string
 
-var serverPort = "localhost:6060"
+var serverPort = "localhost:8085"
 
 func main() {
+	fmt.Printf("Alice publicKey \n \n %s \n", enc.GetRandom())
+
+	fmt.Printf("BoB publicKey \n \n %s \n", enc.GetRandom())
 
 	conn, err := grpc.Dial(serverPort, grpc.WithInsecure())
 	if err != nil {
+		fmt.Print(err.Error())
 		panic(err)
 	}
 	defer func(conn *grpc.ClientConn) {
 		err := conn.Close()
 		if err != nil {
+			fmt.Print(err.Error())
 			panic(err)
 
 		}
