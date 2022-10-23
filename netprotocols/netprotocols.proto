@@ -17,16 +17,20 @@ message PublicKey {
 }
 
 message CommitmentMessage {
-  bytes CipherMessage = 1;
+  bytes CommitmentHash = 1;
+  bytes Signature = 2;
 }
 
 
 message Reply {
-  bytes CipherMessage = 1;
+  string Message = 1;
+  bytes Signature = 2;
 }
 
 message ControlMessage {
-  bytes CipherMessage = 1;
+  string Random = 1;
+  string Message = 2;
+  bytes Signature = 3;
 }
 
 message Void {}
