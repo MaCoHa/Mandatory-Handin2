@@ -8,6 +8,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -56,18 +57,22 @@ func main() {
 
 func (s *BobsDiceServer) SendCommitment(ctx context.Context, rec *pb.CommitmentMessage) (*pb.Reply, error) {
 
-	AliceComitment = rec.CommitmentHash
-	VaildSign := enc.Valid(AlicePublicSignKey, string(rec.CommitmentHash), rec.Signature)
+	AliceComitment = enc.DcryptBytes(rec.CommitmentHash, BobsPrivateEncKey)
+	decSign := enc.DcryptBytes(rec.Signature, BobsPrivateEncKey)
+	VaildSign := enc.Valid(AlicePublicSignKey, string(AliceComitment), decSign)
 	fmt.Printf("Alice signature vaild ? = %t\n", VaildSign)
 
 	if VaildSign {
 		BobsMessage = rand.Intn(10000)
-		var sign = enc.Sign(BobsPrivateSignKey, []byte(strconv.Itoa(BobsMessage)))
-
-		resp := &pb.Reply{Message: strconv.Itoa(BobsMessage), Signature: sign}
+		sign := enc.Sign(BobsPrivateSignKey, []byte(strconv.Itoa(BobsMessage)))
+		encSign := enc.EncryptBytes(sign, AlicePublicEncKey)
+		fmt.Printf("\n%x\n", encSign)
+		encMsg := enc.EncryptBytes([]byte(strconv.Itoa(BobsMessage)), AlicePublicEncKey)
+		fmt.Printf("\n%x\n", encMsg)
+		resp := &pb.Reply{Message: encMsg, Signature: encSign}
 		return resp, nil
 	} else {
-		resp := &pb.Reply{Message: "Nope", Signature: []byte{'N', 'O', 'P', 'E'}}
+		resp := &pb.Reply{Message: []byte{'N', 'O', 'P', 'E'}, Signature: []byte{'N', 'O', 'P', 'E'}}
 		return resp, errors.New("signature check failed")
 	}
 
@@ -75,21 +80,27 @@ func (s *BobsDiceServer) SendCommitment(ctx context.Context, rec *pb.CommitmentM
 
 func (s *BobsDiceServer) SendMessage(ctx context.Context, rec *pb.ControlMessage) (*pb.Void, error) {
 	// Check if the message is from Alice
-	fmt.Printf("\nAlice signature vaild ? : %t\n", enc.Valid(AlicePublicSignKey, (rec.Message+rec.Random), rec.Signature))
+	decRan := string(enc.DcryptBytes(rec.Random, BobsPrivateEncKey))
+	decMsg := string(enc.DcryptBytes(rec.Message, BobsPrivateEncKey))
+	decSign := enc.DcryptBytes(rec.Signature, BobsPrivateEncKey)
+	aliceValid := enc.Valid(AlicePublicSignKey, (decMsg + decRan), decSign)
+	fmt.Printf("\nAlice signature vaild ? : %t\n", aliceValid)
 
-	if enc.Valid(AlicePublicSignKey, (rec.Message + rec.Random), rec.Signature) {
+	if aliceValid {
 		//message is from Alice and we see if she sent the correct message and random
-		var hash = enc.GetHash(rec.Message, rec.Random)
+		var hash = enc.GetHash(decMsg, decRan)
 
 		if bytes.Compare(hash, AliceComitment) == 0 {
 			fmt.Printf("Alice sent the same message as was in her commitment\n")
-			AliceintVar, err := strconv.Atoi(rec.Message)
+			AliceintVar, err := strconv.Atoi(decMsg)
 			if err != nil {
 				panic(err)
 			}
 			fmt.Printf("Bobs number: %d\nAlice number %d\n", BobsMessage, AliceintVar)
 			dice := ((BobsMessage + AliceintVar) % 7)
 			fmt.Printf("Bob now calculates the dice to roll :: %d\n", dice)
+			resp := &pb.Void{}
+			return resp, nil
 		} else {
 
 			fmt.Printf("The commitment Alice sent does not match with what she sent.\n")
@@ -105,17 +116,27 @@ func (s *BobsDiceServer) SendMessage(ctx context.Context, rec *pb.ControlMessage
 
 func (s *BobsDiceServer) SharePublicKey(ctx context.Context, rec *pb.PublicKey) (*pb.PublicKey, error) {
 	fmt.Println("**** Meets Alice in a dark alley and shares the public keys ****")
-	derBuf, err := x509.MarshalECPrivateKey(BobsPrivateSignKey)
+	//Formats the sign key so it can be sent
+	byteSignKey, err := x509.MarshalECPrivateKey(BobsPrivateSignKey)
 	if err != nil {
 		panic(err)
 	}
+	pubEncKey, err := json.Marshal(&BobsPrivateEncKey.PublicKey)
+	if err != nil {
+		panic(err)
+	}
+
 	privCopy, err := x509.ParseECPrivateKey(rec.PublicSignKey)
+	if err != nil {
+		panic(err)
+	}
+	err = json.Unmarshal(rec.PublicEncKey, AlicePublicEncKey)
 	if err != nil {
 		panic(err)
 	}
 	AlicePublicSignKey = &privCopy.PublicKey
 
-	resp := &pb.PublicKey{PublicSignKey: derBuf}
+	resp := &pb.PublicKey{PublicSignKey: byteSignKey, PublicEncKey: pubEncKey}
 
 	fmt.Println("**** Have exchaged keys with Alice ****")
 	return resp, nil

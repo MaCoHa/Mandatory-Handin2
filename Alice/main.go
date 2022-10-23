@@ -7,6 +7,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -71,11 +72,16 @@ func main() {
 func sendpublicsignkey() {
 
 	fmt.Println("**** Meets bob in a dark alley and shares public keys ****")
-	derBuf, err := x509.MarshalECPrivateKey(AlicePrivateSignKey)
+	byteSignKey, err := x509.MarshalECPrivateKey(AlicePrivateSignKey)
 	if err != nil {
 		panic(err)
 	}
-	msg := &pb.PublicKey{PublicSignKey: derBuf}
+	pubEncKey, err := json.Marshal(&AlicePrivateEncKey.PublicKey)
+	if err != nil {
+		panic(err)
+	}
+
+	msg := &pb.PublicKey{PublicSignKey: byteSignKey, PublicEncKey: pubEncKey}
 
 	resp, err := client.SharePublicKey(ctx, msg)
 	if err != nil {
@@ -83,6 +89,11 @@ func sendpublicsignkey() {
 	}
 
 	privCopy, err := x509.ParseECPrivateKey(resp.PublicSignKey)
+	if err != nil {
+		panic(err)
+	}
+
+	err = json.Unmarshal(resp.PublicEncKey, BobsPublicEncKey)
 	if err != nil {
 		panic(err)
 	}
@@ -122,20 +133,22 @@ func sendCommitment(msg string, ran string) bool {
 
 	hash := enc.GetHash(msg, ran)
 	sign := enc.Sign(AlicePrivateSignKey, hash)
+	encHash := enc.EncryptBytes(hash, BobsPublicEncKey)
+	encSigh := enc.EncryptBytes(sign, BobsPublicEncKey)
 
-	fmt.Printf("Alice sign : %t\n", enc.Valid(&AlicePrivateSignKey.PublicKey, string(hash), sign))
-
-	msggrpc := &pb.CommitmentMessage{CommitmentHash: hash, Signature: sign}
+	msggrpc := &pb.CommitmentMessage{CommitmentHash: encHash, Signature: encSigh}
 
 	resp, err := client.SendCommitment(ctx, msggrpc)
 	if err != nil {
 		panic(err)
 	}
+	decMsg := string(enc.DcryptBytes(resp.Message, AlicePrivateEncKey))
+	decSign := enc.DcryptBytes(resp.Signature, AlicePrivateEncKey)
 
-	if enc.Valid(BobsPublicSignKey, resp.Message, resp.Signature) {
+	if enc.Valid(BobsPublicSignKey, decMsg, decSign) {
 		fmt.Println("**** The signature on Bobs reply machtes his key ****")
 		fmt.Println("**** His message have not been modifyed ****")
-		BobsReply = resp.Message
+		BobsReply = decMsg
 		return true
 	} else {
 		fmt.Println("**** The signature on Bobs reply does not machtes his key ****")
@@ -146,9 +159,12 @@ func sendCommitment(msg string, ran string) bool {
 
 func sendMessageAndRandom(msg string, ran string) bool {
 
-	var sig = enc.Sign(AlicePrivateSignKey, []byte(msg+ran))
+	var sign = enc.Sign(AlicePrivateSignKey, []byte(msg+ran))
+	encSign := enc.EncryptBytes(sign, BobsPublicEncKey)
+	encMsg := enc.EncryptBytes([]byte(msg), BobsPublicEncKey)
+	encRan := enc.EncryptBytes([]byte(ran), BobsPublicEncKey)
 
-	msggrpc := &pb.ControlMessage{Random: ran, Message: msg, Signature: sig}
+	msggrpc := &pb.ControlMessage{Random: encRan, Message: encMsg, Signature: encSign}
 
 	_, err := client.SendMessage(ctx, msggrpc)
 	if err != nil {

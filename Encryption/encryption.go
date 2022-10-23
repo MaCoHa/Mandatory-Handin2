@@ -26,7 +26,7 @@ func GetRandom() string {
 
 	var ran string = ""
 
-	for i := 0; i < 265; i++ {
+	for i := 0; i < 64; i++ {
 		ran = ran + string(charset[mat.Intn(len(charset))])
 	}
 
@@ -51,7 +51,7 @@ func GenRSAPrivateKey() *rsa.PrivateKey {
 	}
 	return privateKey
 }
-func encryptBytes(msg []byte, publicKey *rsa.PublicKey) []byte {
+func EncryptBytes(msg []byte, publicKey *rsa.PublicKey) []byte {
 
 	encryptedBytes, err := rsa.EncryptOAEP(
 		sha256.New(),
@@ -64,7 +64,7 @@ func encryptBytes(msg []byte, publicKey *rsa.PublicKey) []byte {
 	}
 	return encryptedBytes
 }
-func dcryptBytes(encryptedBytes []byte, privateKey *rsa.PrivateKey) []byte {
+func DcryptBytes(encryptedBytes []byte, privateKey *rsa.PrivateKey) []byte {
 
 	decryptedBytes, err := privateKey.Decrypt(nil, encryptedBytes, &rsa.OAEPOptions{Hash: crypto.SHA256})
 	if err != nil {
