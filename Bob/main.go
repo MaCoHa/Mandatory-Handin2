@@ -20,7 +20,7 @@ const (
 )
 
 var BobsPrivateSignKey = new(ecdsa.PrivateKey)
-var AlicePublicSignKey = new(ecdsa.PrivateKey)
+var AlicePublicSignKey = new(ecdsa.PublicKey)
 
 var BobsMessage int
 var AliceComitment = []byte{'G', 'E', 'E', 'K', 'S'}
@@ -52,7 +52,7 @@ func (s *BobsDiceServer) SendCommitment(ctx context.Context, rec *pb.CommitmentM
 	fmt.Println("+++ 1 +++")
 	// Check if the message is from Alice
 	AliceComitment = rec.CommitmentHash
-	fmt.Printf("alice vaild ? = %t\n", enc.Valid(&AlicePublicSignKey.PublicKey, string(rec.CommitmentHash), rec.Signature))
+	fmt.Printf("alice vaild ? = %t\n", enc.Valid(AlicePublicSignKey, string(rec.CommitmentHash), rec.Signature))
 
 	BobsMessage = rand.Intn(10000)
 	fmt.Printf("+++++ Bobs number %d +++++\n", BobsMessage)
@@ -65,9 +65,9 @@ func (s *BobsDiceServer) SendCommitment(ctx context.Context, rec *pb.CommitmentM
 func (s *BobsDiceServer) SendMessage(ctx context.Context, rec *pb.ControlMessage) (*pb.Void, error) {
 	fmt.Println("+++ 2 +++")
 	// Check if the message is from Alice
-	fmt.Printf("\nAlice valid : %t\n", enc.Valid(&AlicePublicSignKey.PublicKey, (rec.Message+rec.Random), rec.Signature))
+	fmt.Printf("\nAlice valid : %t\n", enc.Valid(AlicePublicSignKey, (rec.Message+rec.Random), rec.Signature))
 
-	if enc.Valid(&AlicePublicSignKey.PublicKey, (rec.Message + rec.Random), rec.Signature) {
+	if enc.Valid(AlicePublicSignKey, (rec.Message + rec.Random), rec.Signature) {
 		//message is from Alice and we see if she sent the correct message and random
 		var hash = enc.GetHash(rec.Message, rec.Random)
 
@@ -103,7 +103,7 @@ func (s *BobsDiceServer) SharePublicKey(ctx context.Context, rec *pb.PublicKey) 
 	if err != nil {
 		panic(err)
 	}
-	AlicePublicSignKey = privCopy
+	AlicePublicSignKey = &privCopy.PublicKey
 
 	resp := &pb.PublicKey{PublicSignKey: derBuf}
 

@@ -15,7 +15,7 @@ import (
 )
 
 var AlicePrivateSignKey = new(ecdsa.PrivateKey)
-var BobsPublicSignKey = new(ecdsa.PrivateKey)
+var BobsPublicSignKey = new(ecdsa.PublicKey)
 
 var client pb.DicegameprotocolsClient
 var ctx context.Context
@@ -82,7 +82,7 @@ func sendpublicsignkey() {
 	if err != nil {
 		panic(err)
 	}
-	BobsPublicSignKey = privCopy
+	BobsPublicSignKey = &privCopy.PublicKey
 
 	fmt.Println("**** Have exchaged keys with Bob ****")
 
@@ -133,7 +133,7 @@ func sendCommitment(msg string, ran string) bool {
 		panic(err)
 	}
 
-	if enc.Valid(&BobsPublicSignKey.PublicKey, resp.Message, resp.Signature) {
+	if enc.Valid(BobsPublicSignKey, resp.Message, resp.Signature) {
 		fmt.Println("**** The signature on Bobs reply machtes his key ****")
 		fmt.Println("**** His message have not been modifyed ****")
 		BobsReply = resp.Message
