@@ -1,13 +1,13 @@
 package encryption
 
 import (
-	"crypto/aes"
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/rand"
 	cy "crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
-	"encoding/hex"
-	"fmt"
 	"io"
 	mat "math/rand"
 	"time"
@@ -42,34 +42,40 @@ func GetHash(msg, ran string) []byte {
 
 }
 
-// taken from https://www.developer.com/languages/cryptography-in-go/
-// uses a aes encryption libary (golangs crypto)
-func EncryptMessage(key string, message string) string {
-	c, err := aes.NewCipher([]byte(key))
+// ************************************************************************************************
+// RSA Encryption code taken from https://www.sohamkamani.com/golang/rsa-encryption/
+func GenRSAPrivateKey() *rsa.PrivateKey {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
-	msgByte := make([]byte, len(message))
-	c.Encrypt(msgByte, []byte(message))
-	return hex.EncodeToString(msgByte)
+	return privateKey
+}
+func encryptBytes(msg []byte, publicKey *rsa.PublicKey) []byte {
+
+	encryptedBytes, err := rsa.EncryptOAEP(
+		sha256.New(),
+		rand.Reader,
+		publicKey,
+		msg,
+		nil)
+	if err != nil {
+		panic(err)
+	}
+	return encryptedBytes
+}
+func dcryptBytes(encryptedBytes []byte, privateKey *rsa.PrivateKey) []byte {
+
+	decryptedBytes, err := privateKey.Decrypt(nil, encryptedBytes, &rsa.OAEPOptions{Hash: crypto.SHA256})
+	if err != nil {
+		panic(err)
+	}
+	return decryptedBytes
 }
 
-// taken from https://www.developer.com/languages/cryptography-in-go/
-// uses a aes encryption libary (golangs crypto)
-func DecryptMessage(key string, ciphertext string) string {
-	txt, _ := hex.DecodeString(ciphertext)
-	c, err := aes.NewCipher([]byte(key))
-	if err != nil {
-		fmt.Println(err)
-	}
-	msgByte := make([]byte, len(txt))
-	c.Decrypt(msgByte, []byte(txt))
+//************************************************************************************************
 
-	msg := string(msgByte[:])
-	return msg
-}
-
-func GenPrivateKey() *ecdsa.PrivateKey {
+func GenPrivateSignKey() *ecdsa.PrivateKey {
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), cy.Reader)
 	if err != nil {
 		panic(err)
