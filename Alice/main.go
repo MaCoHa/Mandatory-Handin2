@@ -25,7 +25,7 @@ var serverPort = "localhost:8085"
 var BobsReply = ""
 
 func init() {
-	AlicePrivateSignKey = enc.GenPrivateKey()
+	AlicePrivateSignKey = enc.GenPrivateSignKey()
 }
 func main() {
 
@@ -91,22 +91,17 @@ func sendpublicsignkey() {
 func throwDiceWithBob() bool {
 
 	var AliceMessage = strconv.Itoa(rand.Intn(1000))
-	fmt.Printf("\n+++++ Alice num %s +++++\n", AliceMessage)
 
 	var random = enc.GetRandom()
 	if sendCommitment(AliceMessage, random) {
-		fmt.Println("+++ 1 +++")
 		if sendMessageAndRandom(AliceMessage, random) {
-			fmt.Println("+++ 2 +++")
 			intVarBob, err1 := strconv.Atoi(BobsReply)
 			intVarAlice, err := strconv.Atoi(AliceMessage)
 			if (err == nil) && (err1 == nil) {
-				fmt.Println("+++ 3 +++")
 				fmt.Printf("Bobs number: %d\nAlice number %d\n", intVarBob, intVarAlice)
-				fmt.Printf("Alice calculates the dice throw to %d \n", ((intVarBob ^ intVarAlice) % 7))
+				fmt.Printf("Alice calculates the dice throw to roll :: %d \n", ((intVarBob + intVarAlice) % 7))
 				return true
 			} else {
-				fmt.Println("+++ 4 +++")
 				fmt.Printf("???? One of the string -> int failede \n")
 				fmt.Printf("???? Bob %e \n", err1)
 				fmt.Printf("???? Alice %e \n", err)
