@@ -60,7 +60,7 @@ func main() {
 		fmt.Println("write anything to throw dice with Bob:")
 		fmt.Scan(&input)
 		if input != "" {
-			// TODO: implemente alice comitment and respons potocol
+
 			if !throwDiceWithBob() {
 				fmt.Println("???? Something went wrong ????")
 			}
@@ -72,6 +72,7 @@ func main() {
 func sendpublicsignkey() {
 
 	fmt.Println("**** Meets bob in a dark alley and shares public keys ****")
+	// Converts Alices keys to a sendable format
 	byteSignKey, err := x509.MarshalECPrivateKey(AlicePrivateSignKey)
 	if err != nil {
 		panic(err)
@@ -87,12 +88,11 @@ func sendpublicsignkey() {
 	if err != nil {
 		fmt.Printf("Broadcasting problem: %v", err)
 	}
-
+	// Converts the sent keys from bob
 	privCopy, err := x509.ParseECPrivateKey(resp.PublicSignKey)
 	if err != nil {
 		panic(err)
 	}
-
 	err = json.Unmarshal(resp.PublicEncKey, BobsPublicEncKey)
 	if err != nil {
 		panic(err)
@@ -106,10 +106,12 @@ func sendpublicsignkey() {
 func throwDiceWithBob() bool {
 
 	var AliceMessage = strconv.Itoa(rand.Intn(1000))
-
 	var random = enc.GetRandom()
+	// Send initial commitment to bob
 	if sendCommitment(AliceMessage, random) {
+		// Send meg, ran to bob so he can check
 		if sendMessageAndRandom(AliceMessage, random) {
+
 			intVarBob, err1 := strconv.Atoi(BobsReply)
 			intVarAlice, err := strconv.Atoi(AliceMessage)
 			if (err == nil) && (err1 == nil) {
@@ -133,6 +135,7 @@ func sendCommitment(msg string, ran string) bool {
 
 	hash := enc.GetHash(msg, ran)
 	sign := enc.Sign(AlicePrivateSignKey, hash)
+	// encrypt the information being sent to bob
 	encHash := enc.EncryptBytes(hash, BobsPublicEncKey)
 	encSigh := enc.EncryptBytes(sign, BobsPublicEncKey)
 
@@ -142,6 +145,7 @@ func sendCommitment(msg string, ran string) bool {
 	if err != nil {
 		panic(err)
 	}
+	// decrypt Bobs responds
 	decMsg := string(enc.DcryptBytes(resp.Message, AlicePrivateEncKey))
 	decSign := enc.DcryptBytes(resp.Signature, AlicePrivateEncKey)
 
@@ -160,6 +164,7 @@ func sendCommitment(msg string, ran string) bool {
 func sendMessageAndRandom(msg string, ran string) bool {
 
 	var sign = enc.Sign(AlicePrivateSignKey, []byte(msg+ran))
+	//Encrypt the messages being sent to Bob
 	encSign := enc.EncryptBytes(sign, BobsPublicEncKey)
 	encMsg := enc.EncryptBytes([]byte(msg), BobsPublicEncKey)
 	encRan := enc.EncryptBytes([]byte(ran), BobsPublicEncKey)

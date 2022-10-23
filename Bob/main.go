@@ -40,7 +40,7 @@ func init() {
 }
 
 func main() {
-
+	//grpc connectiong to the server (Bob)
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
 		panic(err)
@@ -56,22 +56,26 @@ func main() {
 }
 
 func (s *BobsDiceServer) SendCommitment(ctx context.Context, rec *pb.CommitmentMessage) (*pb.Reply, error) {
-
+	//Decrypt the incomming message from alice
 	AliceComitment = enc.DcryptBytes(rec.CommitmentHash, BobsPrivateEncKey)
 	decSign := enc.DcryptBytes(rec.Signature, BobsPrivateEncKey)
+
+	//Checks if the signature machtes alices signature
 	VaildSign := enc.Valid(AlicePublicSignKey, string(AliceComitment), decSign)
 	fmt.Printf("Alice signature vaild ? = %t\n", VaildSign)
 
 	if VaildSign {
+		//The signature was vaild now respond to bob
 		BobsMessage = rand.Intn(10000)
 		sign := enc.Sign(BobsPrivateSignKey, []byte(strconv.Itoa(BobsMessage)))
+		//Encrypt the messages to bob
 		encSign := enc.EncryptBytes(sign, AlicePublicEncKey)
-		fmt.Printf("\n%x\n", encSign)
 		encMsg := enc.EncryptBytes([]byte(strconv.Itoa(BobsMessage)), AlicePublicEncKey)
-		fmt.Printf("\n%x\n", encMsg)
+
 		resp := &pb.Reply{Message: encMsg, Signature: encSign}
 		return resp, nil
 	} else {
+		//The signature was not vaild now respond with an termination message allowing alice to know something was compromised
 		resp := &pb.Reply{Message: []byte{'N', 'O', 'P', 'E'}, Signature: []byte{'N', 'O', 'P', 'E'}}
 		return resp, errors.New("signature check failed")
 	}
@@ -79,10 +83,12 @@ func (s *BobsDiceServer) SendCommitment(ctx context.Context, rec *pb.CommitmentM
 }
 
 func (s *BobsDiceServer) SendMessage(ctx context.Context, rec *pb.ControlMessage) (*pb.Void, error) {
-	// Check if the message is from Alice
+	// Decrypt the information Alice sent
 	decRan := string(enc.DcryptBytes(rec.Random, BobsPrivateEncKey))
 	decMsg := string(enc.DcryptBytes(rec.Message, BobsPrivateEncKey))
 	decSign := enc.DcryptBytes(rec.Signature, BobsPrivateEncKey)
+
+	// Check if the signature form alice is vaild
 	aliceValid := enc.Valid(AlicePublicSignKey, (decMsg + decRan), decSign)
 	fmt.Printf("\nAlice signature vaild ? : %t\n", aliceValid)
 
@@ -111,7 +117,7 @@ func (s *BobsDiceServer) SendMessage(ctx context.Context, rec *pb.ControlMessage
 	}
 	//grpc allways needs a return so bob responds with an empty struct
 	resp := &pb.Void{}
-	return resp, errors.New("Signature Check failed")
+	return resp, errors.New("signature check failed")
 }
 
 func (s *BobsDiceServer) SharePublicKey(ctx context.Context, rec *pb.PublicKey) (*pb.PublicKey, error) {
