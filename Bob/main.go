@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/ecdsa"
+	"crypto/rsa"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -21,7 +22,9 @@ const (
 )
 
 var BobsPrivateSignKey = new(ecdsa.PrivateKey)
+var BobsPrivateEncKey = new(rsa.PrivateKey)
 var AlicePublicSignKey = new(ecdsa.PublicKey)
+var AlicePublicEncKey = new(rsa.PublicKey)
 
 var BobsMessage int
 var AliceComitment = []byte{'N', 'E', 'W'}
@@ -32,6 +35,7 @@ type BobsDiceServer struct {
 
 func init() {
 	BobsPrivateSignKey = enc.GenPrivateSignKey()
+	BobsPrivateEncKey = enc.GenRSAPrivateKey()
 }
 
 func main() {

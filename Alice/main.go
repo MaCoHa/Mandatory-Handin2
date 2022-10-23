@@ -5,6 +5,7 @@ import (
 	pb "Mandatory-Handin2/netprotocols"
 	"context"
 	"crypto/ecdsa"
+	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
 	"math/rand"
@@ -15,7 +16,9 @@ import (
 )
 
 var AlicePrivateSignKey = new(ecdsa.PrivateKey)
+var AlicePrivateEncKey = new(rsa.PrivateKey)
 var BobsPublicSignKey = new(ecdsa.PublicKey)
+var BobsPublicEncKey = new(rsa.PublicKey)
 
 var client pb.DicegameprotocolsClient
 var ctx context.Context
@@ -26,6 +29,7 @@ var BobsReply = ""
 
 func init() {
 	AlicePrivateSignKey = enc.GenPrivateSignKey()
+	AlicePrivateEncKey = enc.GenRSAPrivateKey()
 }
 func main() {
 
