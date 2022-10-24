@@ -11,7 +11,7 @@ Change the port number in Bob/main.go line 22 and Alice/main.go line 27 to a por
 
 # How to run 
 ## Starting Bob
-  First you need to a terminal in the root folder.. Then run the following command in the terminal
+  First you need to open an terminal in the root folder.. Then run the following command in the terminal
   ```golang
   // Starting Bob / the server
   go run Bob/main.go 
