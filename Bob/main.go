@@ -40,7 +40,7 @@ func init() {
 }
 
 func main() {
-	//grpc connectiong to the server (Bob)
+	//grpc setting up the server
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
 		panic(err)
@@ -90,7 +90,7 @@ func (s *BobsDiceServer) SendMessage(ctx context.Context, rec *pb.ControlMessage
 
 	// Check if the signature form alice is vaild
 	aliceValid := enc.Valid(AlicePublicSignKey, (decMsg + decRan), decSign)
-	fmt.Printf("\nAlice signature vaild ? : %t\n", aliceValid)
+	fmt.Printf("Alice signature vaild ? : %t\n", aliceValid)
 
 	if aliceValid {
 		//message is from Alice and we see if she sent the correct message and random
@@ -104,7 +104,7 @@ func (s *BobsDiceServer) SendMessage(ctx context.Context, rec *pb.ControlMessage
 			}
 			fmt.Printf("Bobs number: %d\nAlice number %d\n", BobsMessage, AliceintVar)
 			dice := ((BobsMessage + AliceintVar) % 7)
-			fmt.Printf("Bob now calculates the dice to roll :: %d\n", dice)
+			fmt.Printf("Bob now calculates the dice to roll :: %d\n\n", dice)
 			resp := &pb.Void{}
 			return resp, nil
 		} else {
@@ -132,6 +132,7 @@ func (s *BobsDiceServer) SharePublicKey(ctx context.Context, rec *pb.PublicKey) 
 		panic(err)
 	}
 
+	// converts the keys sendt from Alice
 	privCopy, err := x509.ParseECPrivateKey(rec.PublicSignKey)
 	if err != nil {
 		panic(err)
