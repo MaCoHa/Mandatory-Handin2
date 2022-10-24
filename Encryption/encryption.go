@@ -13,19 +13,17 @@ import (
 	"time"
 )
 
-var alicePublicKey = "ubc6&ipxwâ1jwstqrb#s&ibâ#Â92zÂp5$o7u&âqyÂ&h3aÂk1#a9Â#agnqrvfgd#cz2z£11g$g#¬vr¬rqkovy=9mrdÂhgÂxÂo3¬q¬1obg&£oe4=tsvw1cuÂlr5821$oemxÂm4=diaÂÂckcps¤f£â#aÂw&3l¤ÂbÂ6¤ujf¤y2ÂbÂknug#5ae#7u468c71nÂ&¬Âvcaâa2zwca7zh6kmz441zk##ÂÂ9xvetÂ¬4&9q$¬a#kn¤$vmbcqn97c7wy191i!9t18"
-var bobPublicKey = "&¤w!f!e#h#g3xccr£2Âhu¤ncuaw#4lc8bkb££6â=rr¬a1gl¬¤p6pd2cj26uz48ct68!gcm&Âc£st4&Ânyp6l4z5jrzs!aqp2ÂeeÂi98j¤ui9a8af¤g&zv#=$#r4l$#eh5¤pb4stknbjj¬apav7v7#571¤9qg=kv3!ei9qahl=3qxu¬i=zwohqt735dy4rncu1ÂÂd1ÂÂwl£6c=5ujgyfd&uijÂfxbj6¤nudpd!Âf!7g¬iâfpq6s5=£y99mÂÂoiwl5&d"
 var h = sha256.New()
 
+// this will generate a random string that can be appended to the commitment before the Hash is generated
 func GetRandom() string {
 
 	mat.Seed(time.Now().UnixNano())
-
-	// String
+	//This is the posible characters that the random string will be generated of
 	charset := "abcdefghijklmnopqrstuvwxyz123456789!#¤&=£$€"
 
 	var ran string = ""
-
+	// the random string have been limitted to 64 because the RSA could not encrypt larger
 	for i := 0; i < 64; i++ {
 		ran = ran + string(charset[mat.Intn(len(charset))])
 	}
@@ -75,6 +73,7 @@ func DcryptBytes(encryptedBytes []byte, privateKey *rsa.PrivateKey) []byte {
 
 //************************************************************************************************
 
+// generate private signature keys
 func GenPrivateSignKey() *ecdsa.PrivateKey {
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), cy.Reader)
 	if err != nil {
