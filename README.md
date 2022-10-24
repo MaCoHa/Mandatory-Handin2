@@ -3,9 +3,10 @@ Hand-in Date: 25 October  2022 (at 23:59)
 
 # Requerements 
 Have go installed and can call "go run"
-Have port 8085 open. 
 
-if the port is not available.
+Port 8085 is Available. 
+
+If the port is not Available.
 Change the port number in Bob/main.go line 22 and Alice/main.go line 27 to a port that is available.
 
 # How to run 
