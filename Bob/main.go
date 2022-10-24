@@ -90,7 +90,7 @@ func (s *BobsDiceServer) SendMessage(ctx context.Context, rec *pb.ControlMessage
 
 	// Check if the signature form alice is vaild
 	aliceValid := enc.Valid(AlicePublicSignKey, (decMsg + decRan), decSign)
-	fmt.Printf("Alice signature vaild ? : %t\n", aliceValid)
+	fmt.Printf("Alice signature vaild ? = %t\n", aliceValid)
 
 	if aliceValid {
 		//message is from Alice and we see if she sent the correct message and random

@@ -1,6 +1,13 @@
 ### Security 1, BSc 2022 -- Mandatory Hand-in 2
 Hand-in Date: 25 October  2022 (at 23:59)
 
+# Requerements 
+Have go installed and can call "go run"
+Have port 8085 open. 
+
+if the port is not available.
+Change the port number in Bob/main.go line 22 and Alice/main.go line 27 to a port that is available.
+
 # How to run 
 ## Starting Bob
   First you need to a terminal in the root folder.. Then run the following command in the terminal

@@ -151,13 +151,11 @@ func sendCommitment(msg string, ran string) bool {
 	decSign := enc.DcryptBytes(resp.Signature, AlicePrivateEncKey)
 
 	if enc.Valid(BobsPublicSignKey, decMsg, decSign) {
-		fmt.Println("**** The signature on Bobs reply machtes his key ****")
-		fmt.Println("**** His message have not been modifyed ****")
+		fmt.Printf("Alice signature vaild ? = %t\n", true)
 		BobsReply = decMsg
 		return true
 	} else {
-		fmt.Println("**** The signature on Bobs reply does not machtes his key ****")
-		fmt.Println("**** His message or signature must have been modified ****")
+		fmt.Printf("Alice signature vaild ? = %t\n", false)
 		return false
 	}
 }
