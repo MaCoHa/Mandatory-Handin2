@@ -33,7 +33,7 @@ func init() {
 	AlicePrivateEncKey = enc.GenRSAPrivateKey()
 }
 func main() {
-
+	//grpc connectiong to the server / Bob
 	conn, err := grpc.Dial(serverPort, grpc.WithInsecure())
 	if err != nil {
 		fmt.Print(err.Error())
@@ -69,8 +69,9 @@ func main() {
 	}
 
 }
-func sendpublicsignkey() {
 
+func sendpublicsignkey() {
+	// This is not surpose to happen over the network and is therefore not encrypted
 	fmt.Println("**** Meets bob in a dark alley and shares public keys ****")
 	// Converts Alices keys to a sendable format
 	byteSignKey, err := x509.MarshalECPrivateKey(AlicePrivateSignKey)
@@ -88,7 +89,7 @@ func sendpublicsignkey() {
 	if err != nil {
 		fmt.Printf("Broadcasting problem: %v", err)
 	}
-	// Converts the sent keys from bob
+	// Converts the keys recived from bob
 	privCopy, err := x509.ParseECPrivateKey(resp.PublicSignKey)
 	if err != nil {
 		panic(err)
@@ -109,7 +110,7 @@ func throwDiceWithBob() bool {
 	var random = enc.GetRandom()
 	// Send initial commitment to bob
 	if sendCommitment(AliceMessage, random) {
-		// Send meg, ran to bob so he can check
+		// Send msg and ran to bob so he can check
 		if sendMessageAndRandom(AliceMessage, random) {
 
 			intVarBob, err1 := strconv.Atoi(BobsReply)
@@ -162,7 +163,9 @@ func sendCommitment(msg string, ran string) bool {
 }
 
 func sendMessageAndRandom(msg string, ran string) bool {
+	//sends the message and random so bob can compute the hash
 
+	//creates a signature from the combination of the message and random
 	var sign = enc.Sign(AlicePrivateSignKey, []byte(msg+ran))
 	//Encrypt the messages being sent to Bob
 	encSign := enc.EncryptBytes(sign, BobsPublicEncKey)
