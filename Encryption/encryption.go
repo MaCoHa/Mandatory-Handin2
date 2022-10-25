@@ -9,11 +9,20 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"io"
+	"math/big"
 	mat "math/rand"
 	"time"
 )
 
 var h = sha256.New()
+
+func RandomInt() int {
+	rand, err := rand.Int(rand.Reader, big.NewInt(99999))
+	if err != nil {
+		panic(err)
+	}
+	return int(rand.Int64())
+}
 
 // this will generate a random string that can be appended to the commitment before the Hash is generated
 func GetRandom() string {

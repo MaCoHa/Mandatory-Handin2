@@ -9,7 +9,6 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"strconv"
 	"time"
 
@@ -57,6 +56,7 @@ func main() {
 	sendpublicsignkey() // exchages public keys with Bob
 	for {
 		input := ""
+		fmt.Printf("\n************ New dice throw ***************\n")
 		fmt.Println("write anything to throw dice with Bob:")
 		fmt.Scan(&input)
 		if input != "" {
@@ -106,7 +106,7 @@ func sendpublicsignkey() {
 
 func throwDiceWithBob() bool {
 
-	var AliceMessage = strconv.Itoa(rand.Intn(1000))
+	var AliceMessage = strconv.Itoa(enc.RandomInt())
 	var random = enc.GetRandom()
 	// Send initial commitment to bob
 	if sendCommitment(AliceMessage, random) {
@@ -117,7 +117,7 @@ func throwDiceWithBob() bool {
 			intVarAlice, err := strconv.Atoi(AliceMessage)
 			if (err == nil) && (err1 == nil) {
 				fmt.Printf("Bobs number: %d\nAlice number %d\n", intVarBob, intVarAlice)
-				fmt.Printf("Alice calculates the dice throw to roll :: %d \n", ((intVarBob + intVarAlice) % 7))
+				fmt.Printf("Alice calculates the dice throw to roll :: %d \n", (((intVarBob + intVarAlice) % 6) + 1))
 				return true
 			} else {
 				fmt.Printf("???? One of the string -> int failede \n")
@@ -139,30 +139,31 @@ func sendCommitment(msg string, ran string) bool {
 	// encrypt the information being sent to bob
 	encHash := enc.EncryptBytes(hash, BobsPublicEncKey)
 	encSigh := enc.EncryptBytes(sign, BobsPublicEncKey)
-
+	fmt.Printf("Sent Commitment to Bob\n")
 	msggrpc := &pb.CommitmentMessage{CommitmentHash: encHash, Signature: encSigh}
 
 	resp, err := client.SendCommitment(ctx, msggrpc)
 	if err != nil {
 		panic(err)
 	}
+	fmt.Printf("Recived number from Bob\n")
 	// decrypt Bobs responds
 	decMsg := string(enc.DcryptBytes(resp.Message, AlicePrivateEncKey))
 	decSign := enc.DcryptBytes(resp.Signature, AlicePrivateEncKey)
 
 	if enc.Valid(BobsPublicSignKey, decMsg, decSign) {
-		fmt.Printf("Alice signature vaild ? = %t\n", true)
+		fmt.Printf("Bobs signature vaild ? = %t\n", true)
 		BobsReply = decMsg
 		return true
 	} else {
-		fmt.Printf("Alice signature vaild ? = %t\n", false)
+		fmt.Printf("Bobs signature vaild ? = %t\n", false)
 		return false
 	}
 }
 
 func sendMessageAndRandom(msg string, ran string) bool {
 	//sends the message and random so bob can compute the hash
-
+	fmt.Printf("Sent random and number to Bob\n")
 	//creates a signature from the combination of the message and random
 	var sign = enc.Sign(AlicePrivateSignKey, []byte(msg+ran))
 	//Encrypt the messages being sent to Bob

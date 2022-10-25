@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/rand"
 	"net"
 	"strconv"
 
@@ -62,16 +61,18 @@ func (s *BobsDiceServer) SendCommitment(ctx context.Context, rec *pb.CommitmentM
 
 	//Checks if the signature machtes alices signature
 	VaildSign := enc.Valid(AlicePublicSignKey, string(AliceComitment), decSign)
+	fmt.Printf("\n************ New dice throw ***************\n")
+	fmt.Printf("Recivede Commitment from alice\n")
 	fmt.Printf("Alice signature vaild ? = %t\n", VaildSign)
 
 	if VaildSign {
 		//The signature was vaild now respond to bob
-		BobsMessage = rand.Intn(10000)
+		BobsMessage = enc.RandomInt()
 		sign := enc.Sign(BobsPrivateSignKey, []byte(strconv.Itoa(BobsMessage)))
 		//Encrypt the messages to bob
 		encSign := enc.EncryptBytes(sign, AlicePublicEncKey)
 		encMsg := enc.EncryptBytes([]byte(strconv.Itoa(BobsMessage)), AlicePublicEncKey)
-
+		fmt.Printf("Sent number to Alice\n")
 		resp := &pb.Reply{Message: encMsg, Signature: encSign}
 		return resp, nil
 	} else {
@@ -90,6 +91,7 @@ func (s *BobsDiceServer) SendMessage(ctx context.Context, rec *pb.ControlMessage
 
 	// Check if the signature form alice is vaild
 	aliceValid := enc.Valid(AlicePublicSignKey, (decMsg + decRan), decSign)
+	fmt.Printf("Recivede Random and Alice's number from Alice\n")
 	fmt.Printf("Alice signature vaild ? = %t\n", aliceValid)
 
 	if aliceValid {
@@ -103,7 +105,7 @@ func (s *BobsDiceServer) SendMessage(ctx context.Context, rec *pb.ControlMessage
 				panic(err)
 			}
 			fmt.Printf("Bobs number: %d\nAlice number %d\n", BobsMessage, AliceintVar)
-			dice := ((BobsMessage + AliceintVar) % 7)
+			dice := ((BobsMessage + AliceintVar) % 6) + 1
 			fmt.Printf("Bob now calculates the dice to roll :: %d\n\n", dice)
 			resp := &pb.Void{}
 			return resp, nil
