@@ -1,7 +1,6 @@
 package encryption
 
 import (
-	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -13,6 +12,22 @@ import (
 	mat "math/rand"
 	"time"
 )
+
+type Commitment struct {
+	CommitmentHash []byte `json:"commitmenthash"`
+	Signature      []byte `json:"signature"`
+}
+
+type Reply struct {
+	Message   []byte `json:"message"`
+	Signature []byte `json:"signature"`
+}
+
+type ControlMessage struct {
+	Random    []byte `json:"random"`
+	Message   []byte `json:"message"`
+	Signature []byte `json:"signature"`
+}
 
 var h = sha256.New()
 
@@ -45,12 +60,11 @@ func GetHash(msg, ran string) []byte {
 
 	io.WriteString(h, msg+ran)
 	hash := h.Sum(nil)
+	h.Reset()
 	return hash
 
 }
 
-// ************************************************************************************************
-// RSA Encryption code taken from https://www.sohamkamani.com/golang/rsa-encryption/
 func GenRSAPrivateKey() *rsa.PrivateKey {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
@@ -58,29 +72,50 @@ func GenRSAPrivateKey() *rsa.PrivateKey {
 	}
 	return privateKey
 }
-func EncryptBytes(msg []byte, publicKey *rsa.PublicKey) []byte {
+func EncryptLargeBytes(msg []byte, publicKey *rsa.PublicKey) ([]byte, error) {
 
-	encryptedBytes, err := rsa.EncryptOAEP(
-		sha256.New(),
-		rand.Reader,
-		publicKey,
-		msg,
-		nil)
-	if err != nil {
-		panic(err)
+	msgLen := len(msg)
+	step := publicKey.Size() - 2*h.Size() - 2
+	var encryptedBytes []byte
+
+	for start := 0; start < msgLen; start += step {
+		finish := start + step
+		if finish > msgLen {
+			finish = msgLen
+		}
+
+		encryptedBlockBytes, err := rsa.EncryptOAEP(h, rand.Reader, publicKey, msg[start:finish], nil)
+		if err != nil {
+			return nil, err
+		}
+
+		encryptedBytes = append(encryptedBytes, encryptedBlockBytes...)
 	}
-	return encryptedBytes
+	return encryptedBytes, nil
 }
-func DcryptBytes(encryptedBytes []byte, privateKey *rsa.PrivateKey) []byte {
+func DcryptLargeBytes(msg []byte, privateKey *rsa.PrivateKey) ([]byte, error) {
 
-	decryptedBytes, err := privateKey.Decrypt(nil, encryptedBytes, &rsa.OAEPOptions{Hash: crypto.SHA256})
-	if err != nil {
-		panic(err)
+	msgLen := len(msg)
+	step := privateKey.PublicKey.Size()
+	var decryptedBytes []byte
+
+	for start := 0; start < msgLen; start += step {
+		finish := start + step
+		if finish > msgLen {
+			finish = msgLen
+		}
+
+		decryptedBlockBytes, err := rsa.DecryptOAEP(h, rand.Reader, privateKey, msg[start:finish], nil)
+		if err != nil {
+			return nil, err
+		}
+
+		decryptedBytes = append(decryptedBytes, decryptedBlockBytes...)
 	}
-	return decryptedBytes
-}
 
-//************************************************************************************************
+	return decryptedBytes, nil
+
+}
 
 // generate private signature keys
 func GenPrivateSignKey() *ecdsa.PrivateKey {

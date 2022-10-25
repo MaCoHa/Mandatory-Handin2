@@ -17,6 +17,10 @@ import (
 	"google.golang.org/grpc"
 )
 
+var commitment *enc.Commitment
+var message *enc.ControlMessage
+var reply *enc.Reply
+
 const (
 	port = "localhost:8085"
 )
@@ -27,7 +31,7 @@ var AlicePublicSignKey = new(ecdsa.PublicKey)
 var AlicePublicEncKey = new(rsa.PublicKey)
 
 var BobsMessage int
-var AliceComitment = []byte{'N', 'E', 'W'}
+var AliceCommitment = []byte{'N', 'E', 'W'}
 
 type BobsDiceServer struct {
 	pb.UnimplementedDicegameprotocolsServer
@@ -36,6 +40,10 @@ type BobsDiceServer struct {
 func init() {
 	BobsPrivateSignKey = enc.GenPrivateSignKey()
 	BobsPrivateEncKey = enc.GenRSAPrivateKey()
+
+	commitment = &enc.Commitment{}
+	message = &enc.ControlMessage{}
+	reply = &enc.Reply{}
 }
 
 func main() {
@@ -55,12 +63,17 @@ func main() {
 }
 
 func (s *BobsDiceServer) SendCommitment(ctx context.Context, rec *pb.CommitmentMessage) (*pb.Reply, error) {
-	//Decrypt the incomming message from alice
-	AliceComitment = enc.DcryptBytes(rec.CommitmentHash, BobsPrivateEncKey)
-	decSign := enc.DcryptBytes(rec.Signature, BobsPrivateEncKey)
-
+	jsonmsg, err := enc.DcryptLargeBytes(rec.Ciphertext, BobsPrivateEncKey)
+	if err != nil {
+		panic(err)
+	}
+	err = json.Unmarshal(jsonmsg, commitment)
+	if err != nil {
+		panic(err)
+	}
+	AliceCommitment = commitment.CommitmentHash
 	//Checks if the signature machtes alices signature
-	VaildSign := enc.Valid(AlicePublicSignKey, string(AliceComitment), decSign)
+	VaildSign := enc.Valid(AlicePublicSignKey, string(AliceCommitment), commitment.Signature)
 	fmt.Printf("\n************ New dice throw ***************\n")
 	fmt.Printf("Recivede Commitment from alice\n")
 	fmt.Printf("Alice signature vaild ? = %t\n", VaildSign)
@@ -69,38 +82,49 @@ func (s *BobsDiceServer) SendCommitment(ctx context.Context, rec *pb.CommitmentM
 		//The signature was vaild now respond to bob
 		BobsMessage = enc.RandomInt()
 		sign := enc.Sign(BobsPrivateSignKey, []byte(strconv.Itoa(BobsMessage)))
-		//Encrypt the messages to bob
-		encSign := enc.EncryptBytes(sign, AlicePublicEncKey)
-		encMsg := enc.EncryptBytes([]byte(strconv.Itoa(BobsMessage)), AlicePublicEncKey)
+		reply.Message = []byte(strconv.Itoa(BobsMessage))
+		reply.Signature = sign
+		jsonmsg, err := json.Marshal(reply)
+		if err != nil {
+			panic(err)
+		}
+		encmsg, err := enc.EncryptLargeBytes(jsonmsg, AlicePublicEncKey)
+		if err != nil {
+			panic(err)
+		}
 		fmt.Printf("Sent number to Alice\n")
-		resp := &pb.Reply{Message: encMsg, Signature: encSign}
+		resp := &pb.Reply{Ciphertext: encmsg}
 		return resp, nil
 	} else {
 		//The signature was not vaild now respond with an termination message allowing alice to know something was compromised
-		resp := &pb.Reply{Message: []byte{'N', 'O', 'P', 'E'}, Signature: []byte{'N', 'O', 'P', 'E'}}
+		resp := &pb.Reply{Ciphertext: []byte{'N', 'O', 'P', 'E'}}
 		return resp, errors.New("signature check failed")
 	}
 
 }
 
 func (s *BobsDiceServer) SendMessage(ctx context.Context, rec *pb.ControlMessage) (*pb.Void, error) {
-	// Decrypt the information Alice sent
-	decRan := string(enc.DcryptBytes(rec.Random, BobsPrivateEncKey))
-	decMsg := string(enc.DcryptBytes(rec.Message, BobsPrivateEncKey))
-	decSign := enc.DcryptBytes(rec.Signature, BobsPrivateEncKey)
+	jsonmsg, err := enc.DcryptLargeBytes(rec.Ciphertext, BobsPrivateEncKey)
+	if err != nil {
+		panic(err)
+	}
+	err = json.Unmarshal(jsonmsg, message)
+	if err != nil {
+		panic(err)
+	}
 
 	// Check if the signature form alice is vaild
-	aliceValid := enc.Valid(AlicePublicSignKey, (decMsg + decRan), decSign)
+	aliceValid := enc.Valid(AlicePublicSignKey, (string(message.Message) + string(message.Random)), message.Signature)
 	fmt.Printf("Recivede Random and Alice's number from Alice\n")
 	fmt.Printf("Alice signature vaild ? = %t\n", aliceValid)
 
 	if aliceValid {
 		//message is from Alice and we see if she sent the correct message and random
-		var hash = enc.GetHash(decMsg, decRan)
+		var hash = enc.GetHash(string(message.Message), string(message.Random))
 
-		if bytes.Compare(hash, AliceComitment) == 0 {
+		if bytes.Compare(hash, AliceCommitment) == 0 {
 			fmt.Printf("Alice sent the same message as was in her commitment\n")
-			AliceintVar, err := strconv.Atoi(decMsg)
+			AliceintVar, err := strconv.Atoi(string(message.Message))
 			if err != nil {
 				panic(err)
 			}
@@ -112,7 +136,7 @@ func (s *BobsDiceServer) SendMessage(ctx context.Context, rec *pb.ControlMessage
 		} else {
 
 			fmt.Printf("The commitment Alice sent does not match with what she sent.\n")
-			fmt.Printf("commitment =          %s\n", AliceComitment)
+			fmt.Printf("commitment =          %s\n", AliceCommitment)
 			fmt.Printf("Bobs generated hash = %s\n", hash)
 		}
 

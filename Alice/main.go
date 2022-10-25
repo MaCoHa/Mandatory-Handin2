@@ -27,9 +27,18 @@ var serverPort = "localhost:8085"
 
 var BobsReply = ""
 
+var commitment *enc.Commitment
+var message *enc.ControlMessage
+var reply *enc.Reply
+
 func init() {
 	AlicePrivateSignKey = enc.GenPrivateSignKey()
 	AlicePrivateEncKey = enc.GenRSAPrivateKey()
+
+	commitment = &enc.Commitment{}
+	message = &enc.ControlMessage{}
+	reply = &enc.Reply{}
+
 }
 func main() {
 	//grpc connectiong to the server / Bob
@@ -137,23 +146,38 @@ func sendCommitment(msg string, ran string) bool {
 	hash := enc.GetHash(msg, ran)
 	sign := enc.Sign(AlicePrivateSignKey, hash)
 	// encrypt the information being sent to bob
-	encHash := enc.EncryptBytes(hash, BobsPublicEncKey)
-	encSigh := enc.EncryptBytes(sign, BobsPublicEncKey)
+	commitment.CommitmentHash = hash
+	commitment.Signature = sign
+	msgjson, err := json.Marshal(commitment)
+	if err != nil {
+		panic(err)
+	}
+	encmsg, err := enc.EncryptLargeBytes(msgjson, BobsPublicEncKey)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Printf("Sent Commitment to Bob\n")
-	msggrpc := &pb.CommitmentMessage{CommitmentHash: encHash, Signature: encSigh}
+	msggrpc := &pb.CommitmentMessage{Ciphertext: encmsg}
 
 	resp, err := client.SendCommitment(ctx, msggrpc)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("Recived number from Bob\n")
-	// decrypt Bobs responds
-	decMsg := string(enc.DcryptBytes(resp.Message, AlicePrivateEncKey))
-	decSign := enc.DcryptBytes(resp.Signature, AlicePrivateEncKey)
 
-	if enc.Valid(BobsPublicSignKey, decMsg, decSign) {
+	respjson, err := enc.DcryptLargeBytes(resp.Ciphertext, AlicePrivateEncKey)
+	if err != nil {
+		panic(err)
+	}
+	err = json.Unmarshal(respjson, reply)
+	if err != nil {
+		panic(err)
+	}
+	// decrypt Bobs responds
+
+	if enc.Valid(BobsPublicSignKey, string(reply.Message), reply.Signature) {
 		fmt.Printf("Bobs signature vaild ? = %t\n", true)
-		BobsReply = decMsg
+		BobsReply = string(reply.Message)
 		return true
 	} else {
 		fmt.Printf("Bobs signature vaild ? = %t\n", false)
@@ -167,13 +191,17 @@ func sendMessageAndRandom(msg string, ran string) bool {
 	//creates a signature from the combination of the message and random
 	var sign = enc.Sign(AlicePrivateSignKey, []byte(msg+ran))
 	//Encrypt the messages being sent to Bob
-	encSign := enc.EncryptBytes(sign, BobsPublicEncKey)
-	encMsg := enc.EncryptBytes([]byte(msg), BobsPublicEncKey)
-	encRan := enc.EncryptBytes([]byte(ran), BobsPublicEncKey)
+	message.Message = []byte(msg)
+	message.Random = []byte(ran)
+	message.Signature = sign
+	msgjson, err := json.Marshal(message)
+	if err != nil {
+		panic(err)
+	}
+	encmsg, err := enc.EncryptLargeBytes(msgjson, BobsPublicEncKey)
+	msggrpc := &pb.ControlMessage{Ciphertext: encmsg}
 
-	msggrpc := &pb.ControlMessage{Random: encRan, Message: encMsg, Signature: encSign}
-
-	_, err := client.SendMessage(ctx, msggrpc)
+	_, err = client.SendMessage(ctx, msggrpc)
 	if err != nil {
 		panic(err)
 	}
